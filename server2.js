@@ -11,7 +11,7 @@ app.use(express.json());
 
 // sql db연결정보
 const connection = mysql.createConnection({
-  host:"localhost",
+  host:"database",
   user:"root",
   password:"1234",
   database:"kdt"
