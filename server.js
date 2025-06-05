@@ -65,7 +65,7 @@ app.post('/login2', (req, res)=>{
     const user = result[0];
     const isMatch = await bcrypt.compare(password, user.password);
     if(!isMatch){
-      return res.status(401).josn({error: '아이디 또는 비밀번호가 틀립니다.'})
+      return res.status(401).json({error: '아이디 또는 비밀번호가 틀립니다.'})
     }
     // 토큰생성(1시간)
     const token = jwt.sign({id: user.id, username: user.username}, SECRET_KEY, {expiresIn: '1h'});
@@ -342,7 +342,7 @@ app.get('/fruits/:num', (req,res)=>{
     (err,results)=>{
       if(err){
         console.log('조회오류 : ', err);
-        res.status(500).josn({error:'상품 조회 실패'})
+        res.status(500).json({error:'상품 조회 실패'})
         return;
       }
       if(results.length===0){
@@ -359,7 +359,7 @@ app.post('/fruits', (req, res)=>{
 
   if(!name || !color || !price || !country){
     return res.status(400).json({error:'필수 항목이 누락되었습니다. 다시 확인해주세요.'}
-    )}
+    )});
 
     connection.query('INSERT INTO fruit (name, color, price, country) VALUES(?,?,?,?)', [name, color, price, country],(err, result)=>{
       if(err){
@@ -401,7 +401,7 @@ app.get('/question/count', (req, res) => {
 });
 
 // ginipet
-app.post('/register', async(req, res)=>{
+app.post('/register2', async(req, res)=>{
   const {username, password, tel, email} = req.body;
   const hash = await bcrypt.hash(password, 10); //해시패스워드로 암호화
   
@@ -417,7 +417,7 @@ app.post('/register', async(req, res)=>{
 });
 
 //로그인시 사용자가 입력한 username, password를 받아서 요청된 정보를 처리하여 응답을 해준다.
-app.post('/login', (req, res)=>{
+app.post('/login3', (req, res)=>{
   const {username, password} = req.body;
 
   connection.query("SELECT * FROM ginipet_users WHERE username=?", [username], async(err,result)=>{
