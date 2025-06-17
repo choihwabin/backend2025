@@ -448,7 +448,7 @@ app.post('/fruits', (req, res)=>{
 
   if(!name || !color || !price || !country){
     return res.status(400).json({error:'필수 항목이 누락되었습니다. 다시 확인해주세요.'}
-    )});
+    )};
 
     connection.query('INSERT INTO fruit (name, color, price, country) VALUES(?,?,?,?)', [name, color, price, country],(err, result)=>{
       if(err){
