@@ -27,32 +27,121 @@ connection.connect((err)=>{
   console.log('MYSQL연결 성공');
 });
 
-// 로그인 회원가입
+// REGO (회원가입, 로그인, 카트(담기, 삭제))
+// 회원가입
+app.post('/join', async(req,res)=>{
+  const {userid, password, nickname, email}= req.body;
+  const hash = await bcrypt.hash(password, 10);
 
-//3. 로그인 폼에서 post방식으로 전달받은 데이터를 DB에 조회하여 결과값을 리턴함.
-app.post('/login', (req, res)=>{
-  const {username, password} = req.body;
-
-  connection.query('SELECT * FROM users WHERE username=?',[username], async(err, result)=>{
-    if(err||result.length===0){
-      return res.status(401).json({error:'아이디 또는 비밀번호가 틀립니다.'});
+  connection.query(
+    "INSERT INTO rego_user (userid, password, nickname, email) VALUES (?,?,?,?)", [userid, hash, nickname, email],(err)=>{
+      if(err){
+        if(err.code == 'ER_DUP_ENTRY'){
+          return res.status(400).json({error:'이미 존재하는 아이디입니다.'});
+        }
+        return res.status(500).json({error:'회원가입실패'});
+      }
+      res.json({success:true});
     }
+  );
+});
+// 로그인
+app.post('/login',(req,res)=>{
+  const {userid, password} = req.body;
 
+  connection.query('SELECT * FROM rego_user WHERE userid=?', [userid], (err, result)=>{
+    if(err||result.length===0){
+      return res.status(401).json({error:'아이디 또는 비밀번호를 확인해주세요.'});
+    }
     const user = result[0];
 
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if(!isMatch){
-      return res.status(401).json({error : '아이디 또는 비밀번호가 틀립니다.'})
+    bcrypt.compare(password, user.password,(err, isMatch) =>{
+    if(err || !isMatch){
+      return res.status(401).json({error: '아이디 또는 비밀번호를 확인해주세요.'});
     }
 
-    //토큰 생성(1시간)
-    const token = jwt.sign({id: user.id, username: user.username}, SECRET_KEY, {expiresIn: '1h'});
+    const token = jwt.sign({id:user.id, userid:user.userid}, SECRET_KEY,{expiresIn:'1h'});
 
-    //토큰 발급
-    res.json({token});
+    res.json({token, nickname:user.nickname});
   });
 });
+});
+
+//장바구니 조회
+app.get('/cart', (req,res) => {
+  const {userId} = req.query;
+
+  connection.query(
+    'SELECT * FROM cart WHERE userid =?',
+    [userId],
+    (err, results) => {
+      if(err) return res.status(500).json({ error: 'DB 조회 실패'});
+      res.json(results);
+    }
+  );
+});
+//장바구니 추가
+app.post('/cart', (req,res) => {
+  const {userId, product} = req.body;
+  connection.query(
+    'INSERT INTO cart (userid, title, `desc`, img, price) VALUES (?,?,?,?,?)',[userId, product.title, product.desc,product.img,product.price],
+    (err, result) => {
+      if(err) {
+        console.error('장바구니 추가 에러 :', err); 
+        return res. status(500).json({ error: '장바구니 추가 실패' });
+      } 
+      res.json({success:true});
+    }
+  );
+});
+//장바구니 삭제
+app.delete('/cart/:no', (req, res) => {
+  const no = req.params.no;
+
+  connection.query(
+    'DELETE FROM cart WHERE no = ?', [no],
+    (err, result) => {
+      if (err) {
+        console.error('삭제 오류:', err);
+        return res.status(500).json({ error: '상품 삭제 실패' });
+      }
+      res.json({ success: true });
+    }
+  );
+});
+
+
+
+
+
+
+
+// 로그인 회원가입
+
+// //3. 로그인 폼에서 post방식으로 전달받은 데이터를 DB에 조회하여 결과값을 리턴함.
+// app.post('/login', (req, res)=>{
+//   const {username, password} = req.body;
+
+//   connection.query('SELECT * FROM users WHERE username=?',[username], async(err, result)=>{
+//     if(err||result.length===0){
+//       return res.status(401).json({error:'아이디 또는 비밀번호가 틀립니다.'});
+//     }
+
+//     const user = result[0];
+
+//     const isMatch = await bcrypt.compare(password, user.password);
+
+//     if(!isMatch){
+//       return res.status(401).json({error : '아이디 또는 비밀번호가 틀립니다.'})
+//     }
+
+//     //토큰 생성(1시간)
+//     const token = jwt.sign({id: user.id, username: user.username}, SECRET_KEY, {expiresIn: '1h'});
+
+//     //토큰 발급
+//     res.json({token});
+//   });
+// });
 
 // 로그인 2
 app.post('/login2', (req, res)=>{
