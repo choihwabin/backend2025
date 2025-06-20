@@ -72,7 +72,7 @@ app.get('/cart', (req,res) => {
   const {userId} = req.query;
 
   connection.query(
-    'SELECT * FROM cart WHERE userid =?',
+    'SELECT * FROM cart WHERE userid =? ORDER BY no DESC',
     [userId],
     (err, results) => {
       if(err) return res.status(500).json({ error: 'DB 조회 실패'});
@@ -80,9 +80,13 @@ app.get('/cart', (req,res) => {
     }
   );
 });
+
 //장바구니 추가
-app.post('/cart', (req,res) => {
-  const {userId, product} = req.body;
+app.post('/cart', (req, res) => {
+  const { userId, product } = req.body;
+  if (!userId || !product) {
+    return res.status(400).json({ error: '필수값 누락' });
+  }
   connection.query(
     'INSERT INTO cart (userid, title, `desc`, img, price) VALUES (?,?,?,?,?)',[userId, product.title, product.desc,product.img,product.price],
     (err, result) => {
@@ -108,6 +112,67 @@ app.delete('/cart/:no', (req, res) => {
       res.json({ success: true });
     }
   );
+});
+
+// 상품 목록 조회 (전체)
+app.get('/mypage/:userid', (req, res) => {
+  const {userid} = req.params;
+  connection.query(
+    'SELECT * FROM selling WHERE userid=? ORDER BY id DESC',[userid],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: '상품 목록 조회 실패' });
+      res.json(results);
+    }
+  );
+});
+
+// 상품 상세 조회
+app.get('/mypage/item/:id', (req, res) => {
+  const { id } = req.params;
+  connection.query(
+    'SELECT * FROM selling WHERE id = ?',
+    [id],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: '상품 조회 실패' });
+      if (results.length === 0) return res.status(404).json({ error: '상품을 찾을 수 없습니다.' });
+      res.json(results[0]);
+    }
+  );
+});
+
+
+// 상품 등록
+app.post('/write', (req, res) => {
+  const { img, title, cate, price, status, desc, delivery,userid } = req.body;
+  const sql = `INSERT INTO selling (img, title, cate, price, status, \`desc\`, delivery, userid)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+  connection.query(sql, [img, title, cate, price, status, desc, delivery, userid], (err, result) => {
+    if (err){
+      console.error(err);
+      return res.status(500).json({ error: '상품 등록 실패' });
+    }
+      res.json({ id: result.insertId });
+  });
+});
+
+// 상품 수정
+app.post('/mypage/:id', (req, res) => {
+  const { id } = req.params;
+  const { img, title, cate, price, status, desc, delivery } = req.body;
+  const sql = `UPDATE selling SET img=?, title=?, cate=?, price=?, status=?, \`desc\`=?, delivery=? WHERE id=?`;
+  connection.query(sql, [img, title, cate, price, status, desc, delivery, id], err => {
+    if (err) return res.status(500).json({ error: '상품 수정 실패' });
+    res.json({ success: true });
+  });
+});
+
+// 상품 삭제
+app.delete('/selling/:id', (req, res) => {
+  const { id } = req.params;
+  connection.query('DELETE FROM selling WHERE id=?', [id], (err, result) => {
+    if (err) return res.status(500).json({ error: '상품 삭제 실패' });
+    res.json({ success: true });
+  });
 });
 
 
